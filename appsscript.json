@@ -1,31 +1,39 @@
 {
-  "timeZone": "UTC",
+  "timeZone": "Asia/Jerusalem",
   "dependencies": {
+    "enabledAdvancedServices": [
+      {
+        "userSymbol": "Calendar",
+        "version": "v3",
+        "serviceId": "calendar"
+      },
+      {
+        "userSymbol": "Gmail",
+        "version": "v1",
+        "serviceId": "gmail"
+      }
+    ]
   },
   "exceptionLogging": "STACKDRIVER",
-  "oauthScopes": [
-    "https://www.googleapis.com/auth/gmail.addons.execute",
-    "https://www.googleapis.com/auth/gmail.addons.current.message.readonly",
-    "https://www.googleapis.com/auth/calendar",
-    "https://www.googleapis.com/auth/script.external_request"
-  ],
   "runtimeVersion": "V8",
   "addOns": {
     "common": {
-      "name": "Gmail to Calendar AI",
-      "logoUrl": "https://www.gstatic.com/images/icons/material/system/1x/receipt_black_24dp.png",
-      "useLocaleFromApp": true
+        "name": "Gmail → Calendar AI",
+          "logoUrl": "https://www.gstatic.com/images/icons/material/system/2x/event_white_24dp.png"
     },
-    "gmail": {
-      "contextualTriggers": [
-        {
-          "unconditional": {
-          },
-          "onTriggerFunction": "getContextualAddOn"
-        }
-      ],
-      "primaryColor": "#4285F4",
-      "secondaryColor": "#ea4335"
-    }
+      "gmail": {
+          "name": "Gmail → Calendar AI",
+              "logoUrl": "https://www.gstatic.com/images/icons/material/system/2x/event_white_24dp.png",
+                  "contextualTriggers": [
+                        {
+                                "unconditional": {},
+                                        "onTriggerFunction": "getContextualAddOn"
+                                              }
+                                                  ],
+                                                      "primaryColor": "#4285F4",
+                                                          "secondaryColor": "#D3E3FC",
+                                                              "openLinkUrlPrefixes": [],
+                                                                  "useLocaleFromApp": true
+                                                                    }
+                                                                    }
   }
-}
