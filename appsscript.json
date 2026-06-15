@@ -22,15 +22,15 @@
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile"
   ],
+  "urlFetchWhitelist": [
+    "https://generativelanguage.googleapis.com/"
+  ],
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
   "addOns": {
     "common": {
         "name": "Gmail → Calendar AI",
-        "logoUrl": "https://www.gstatic.com/images/icons/material/system/2x/event_white_24dp.png",
-        "urlFetchWhitelist": [
-          "https://generativelanguage.googleapis.com/"
-        ]
+        "logoUrl": "https://www.gstatic.com/images/icons/material/system/2x/event_white_24dp.png"
     },
       "gmail": {
           "name": "Gmail → Calendar AI",
