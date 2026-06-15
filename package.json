@@ -1,0 +1,21 @@
+{
+  "name": "gmail-to-calendar",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "login": "clasp login",
+    "create": "clasp create --type standalone --title 'Gmail to Calendar AI'",
+    "push": "clasp push",
+    "deploy": "clasp deploy"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@google/clasp": "^3.3.0",
+    "@types/google-apps-script": "^2.0.11"
+  }
+}
