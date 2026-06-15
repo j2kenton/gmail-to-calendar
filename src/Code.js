@@ -3,7 +3,9 @@ function getGeminiApiKey() {
 }
 
 function getContextualAddOn(e) {
-  const messageId = e.messageMetadata.messageId;
+  const accessToken = e.gmail.accessToken;
+  GmailApp.setCurrentMessageAccessToken(accessToken);
+  const messageId = e.gmail.messageId;
   const message = GmailApp.getMessageById(messageId);
   const subject = message.getSubject();
   return createEventCard(subject, messageId);
@@ -35,23 +37,37 @@ function createEventCard(subject, messageId) {
 }
 
 function processEmailToCalendar(e) {
-  const messageId = e.parameters.messageId;
+  const accessToken = e.gmail.accessToken;
+  GmailApp.setCurrentMessageAccessToken(accessToken);
+  const messageId = e.commonEventObject.parameters.messageId;
   const message = GmailApp.getMessageById(messageId);
   const subject = message.getSubject();
   const body = message.getPlainBody();
 
-  const prompt = `Extract event details from the email below and return ONLY valid JSON in the following structure:
+  const tz = CalendarApp.getDefaultCalendar().getTimeZone();
+  const now = new Date();
+  const currentDateTime = Utilities.formatDate(now, tz, "yyyy-MM-dd HH:mm");
+
+  const prompt = `Extract event details from the email below and return ONLY valid JSON with no markdown or code fences, in the following structure:
     {
         "title": "string",
         "date": "YYYY-MM-DD",
         "start_time": "HH:MM",
+        "end_date": "YYYY-MM-DD",
         "end_time": "HH:MM",
-        "location": "string"
+        "location": "string",
+        "summary": "string"
     }
 
-    Date and time should not be in the past. Input date and time may be relative (e.g., "tomorrow at 3 PM") or absolute (e.g., "2023-10-01 15:00").
-    If a field is missing, leave it empty.
-    You can assume that there is at least one event in the email and don't need to check this.
+    Rules:
+    - The current date and time in the user's timezone (${tz}) is: ${currentDateTime}
+    - All dates and times must be interpreted and returned in the ${tz} timezone.
+    - All dates and times must be in the future relative to now.
+    - Relative dates (e.g., "tomorrow", "next Tuesday") must be resolved to absolute YYYY-MM-DD dates.
+    - "end_date" defaults to the same as "date" but must be set to the next day if the event ends after midnight.
+    - If end_time is missing, leave it empty.
+    - If location is missing, leave it empty.
+    - "summary" should be a concise 2-3 sentence summary of the email relevant to the event.
 
     Email Content (likely to be in English or Hebrew or a mix of both):
       """
@@ -59,47 +75,61 @@ function processEmailToCalendar(e) {
       """
     `;
 
-  const eventData = callGemini(prompt);
-
-  if (eventData) {
-    try {
-      const event = JSON.parse(eventData);
-      if (event.date && event.start_time) {
-        const start = new Date(event.date + " " + event.start_time);
-        const end = event.end_time
-          ? new Date(event.date + " " + event.end_time)
-          : new Date(start.getTime() + 60 * 60 * 1000);
-
-        CalendarApp.getDefaultCalendar().createEvent(
-          event.title || subject,
-          start,
-          end,
-          { location: event.location || "", description: body }
-        );
-        return CardService.newActionResponseBuilder()
-          .setNotification(
-            CardService.newNotification().setText("Event created successfully!")
-          )
-          .build();
-      }
-    } catch (err) {
-      return CardService.newActionResponseBuilder()
-        .setNotification(
-          CardService.newNotification().setText("Error parsing event details.")
-        )
-        .build();
-    }
+  var eventData;
+  try {
+    eventData = callGemini(prompt);
+  } catch (err) {
+    Logger.log("Gemini call failed: " + err.message);
+    return notificationResponse("Could not reach AI service. Please try again.");
   }
 
-  return CardService.newActionResponseBuilder()
-    .setNotification(
-      CardService.newNotification().setText("No event details found.")
-    )
-    .build();
+  if (!eventData) {
+    return notificationResponse("No event details found.");
+  }
+
+  try {
+    const event = JSON.parse(eventData);
+    if (!event.date || !event.start_time) {
+      return notificationResponse("No event details found.");
+    }
+
+    const endDate = event.end_date || event.date;
+    const startLocal = parseDateTimeInTz(event.date, event.start_time, tz);
+    const endLocal = event.end_time
+      ? parseDateTimeInTz(endDate, event.end_time, tz)
+      : new Date(startLocal.getTime() + 60 * 60 * 1000);
+
+    if (isNaN(startLocal.getTime()) || isNaN(endLocal.getTime())) {
+      return notificationResponse("Could not parse event times.");
+    }
+    if (endLocal <= startLocal) {
+      return notificationResponse("Event end time is not after start time.");
+    }
+    if (startLocal <= now) {
+      return notificationResponse("Event time is in the past.");
+    }
+
+    CalendarApp.getDefaultCalendar().createEvent(
+      event.title || subject,
+      startLocal,
+      endLocal,
+      { location: event.location || "", description: event.summary || "" }
+    );
+    return notificationResponse("Event created successfully!");
+  } catch (err) {
+    Logger.log("Event creation error: " + err.message);
+    return notificationResponse("Error creating event. Please try again.");
+  }
+}
+
+// Utilities.parseDate interprets the string in the given timezone, avoiding UTC offset ambiguity.
+function parseDateTimeInTz(date, time, tz) {
+  return Utilities.parseDate(date + "T" + time + ":00", tz, "yyyy-MM-dd'T'HH:mm:ss");
 }
 
 function callGemini(prompt) {
   const apiKey = getGeminiApiKey();
+  if (!apiKey) throw new Error("GEMINI_API_KEY script property is not set.");
 
   const GEMINI_URL =
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=" +
@@ -110,12 +140,33 @@ function callGemini(prompt) {
     method: "POST",
     contentType: "application/json",
     payload: JSON.stringify(payload),
+    muteHttpExceptions: true,
   };
 
   const response = UrlFetchApp.fetch(GEMINI_URL, options);
-  const text = JSON.parse(response.getContentText()).candidates[0].content
-    .parts[0].text;
+  const statusCode = response.getResponseCode();
+  if (statusCode !== 200) {
+    Logger.log("Gemini HTTP " + statusCode + ": " + response.getContentText());
+    throw new Error("Gemini API returned HTTP " + statusCode + ".");
+  }
 
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  const parsed = JSON.parse(response.getContentText());
+  const text =
+    parsed.candidates &&
+    parsed.candidates[0] &&
+    parsed.candidates[0].content &&
+    parsed.candidates[0].content.parts &&
+    parsed.candidates[0].content.parts[0] &&
+    parsed.candidates[0].content.parts[0].text;
+
+  if (!text) throw new Error("Gemini returned no text content.");
+
+  const jsonMatch = text.match(/\{[\s\S]*?\}/);
   return jsonMatch ? jsonMatch[0] : null;
+}
+
+function notificationResponse(message) {
+  return CardService.newActionResponseBuilder()
+    .setNotification(CardService.newNotification().setText(message))
+    .build();
 }

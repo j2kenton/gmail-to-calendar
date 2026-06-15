@@ -78,4 +78,4 @@ package.json         # clasp dev dependency
 
 ## Privacy
 
-No email data is stored. Email content is sent directly to the Gemini API for processing and discarded. Your API key is stored in Google Apps Script's encrypted Script Properties, never in source code.
+Email content is sent to the Gemini API for processing. A short AI-generated summary is stored in the Calendar event description. Your API key is stored in Google Apps Script's encrypted Script Properties, never in source code.
