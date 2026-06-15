@@ -3,13 +3,13 @@ function getGeminiApiKey() {
 }
 
 function getContextualAddOn(e) {
-  const message = GmailApp.getMessageById(e.messageMetadata.messageId);
+  const messageId = e.messageMetadata.messageId;
+  const message = GmailApp.getMessageById(messageId);
   const subject = message.getSubject();
-  const body = message.getPlainBody();
-  return createEventCard(subject, body);
+  return createEventCard(subject, messageId);
 }
 
-function createEventCard(subject, body) {
+function createEventCard(subject, messageId) {
   return CardService.newCardBuilder()
     .setHeader(
       CardService.newCardHeader()
@@ -27,7 +27,7 @@ function createEventCard(subject, body) {
             .setOnClickAction(
               CardService.newAction()
                 .setFunctionName("processEmailToCalendar")
-                .setParameters({ subject: subject, body: body })
+                .setParameters({ messageId: messageId })
             )
         )
     )
@@ -35,8 +35,10 @@ function createEventCard(subject, body) {
 }
 
 function processEmailToCalendar(e) {
-  const subject = e.parameters.subject;
-  const body = e.parameters.body;
+  const messageId = e.parameters.messageId;
+  const message = GmailApp.getMessageById(messageId);
+  const subject = message.getSubject();
+  const body = message.getPlainBody();
 
   const prompt = `Extract event details from the email below and return ONLY valid JSON in the following structure:
     {
@@ -52,7 +54,7 @@ function processEmailToCalendar(e) {
     You can assume that there is at least one event in the email and don't need to check this.
 
     Email Content (likely to be in English or Hebrew or a mix of both):
-      """ 
+      """
         ${body}
       """
     `;
