@@ -1,8 +1,11 @@
 function getGeminiApiKey() {
-  return PropertiesService.getScriptProperties().getProperty("GEMINI_API_KEY");
+  return PropertiesService.getUserProperties().getProperty("GEMINI_API_KEY");
 }
 
 function getContextualAddOn(e) {
+  if (!getGeminiApiKey()) {
+    return createSettingsCard("To get started, enter your Gemini API key.");
+  }
   const accessToken = e.gmail.accessToken;
   GmailApp.setCurrentMessageAccessToken(accessToken);
   const messageId = e.gmail.messageId;
@@ -32,7 +35,66 @@ function createEventCard(subject, messageId) {
                 .setParameters({ messageId: messageId })
             )
         )
+        .addWidget(
+          CardService.newTextButton()
+            .setText("⚙ Settings")
+            .setOnClickAction(
+              CardService.newAction().setFunctionName("showSettings")
+            )
+        )
     )
+    .build();
+}
+
+function showSettings() {
+  return CardService.newActionResponseBuilder()
+    .setNavigation(
+      CardService.newNavigation().pushCard(createSettingsCard("Update your Gemini API key below."))
+    )
+    .build();
+}
+
+function createSettingsCard(message) {
+  return CardService.newCardBuilder()
+    .setHeader(
+      CardService.newCardHeader()
+        .setTitle("Settings")
+        .setSubtitle("Gmail → Calendar AI")
+    )
+    .addSection(
+      CardService.newCardSection()
+        .addWidget(CardService.newTextParagraph().setText(message))
+        .addWidget(
+          CardService.newTextParagraph().setText(
+            'Get a free API key at aistudio.google.com'
+          )
+        )
+        .addWidget(
+          CardService.newTextInput()
+            .setFieldName("apiKey")
+            .setTitle("Gemini API Key")
+            .setHint("Paste your key here")
+        )
+        .addWidget(
+          CardService.newTextButton()
+            .setText("Save API Key")
+            .setOnClickAction(
+              CardService.newAction().setFunctionName("saveApiKey")
+            )
+        )
+    )
+    .build();
+}
+
+function saveApiKey(e) {
+  const apiKey = e.commonEventObject.formInputs.apiKey.stringInputs.value[0];
+  if (!apiKey || apiKey.trim() === "") {
+    return notificationResponse("Please enter a valid API key.");
+  }
+  PropertiesService.getUserProperties().setProperty("GEMINI_API_KEY", apiKey.trim());
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().popCard())
+    .setNotification(CardService.newNotification().setText("API key saved!"))
     .build();
 }
 
@@ -129,7 +191,7 @@ function parseDateTimeInTz(date, time, tz) {
 
 function callGemini(prompt) {
   const apiKey = getGeminiApiKey();
-  if (!apiKey) throw new Error("GEMINI_API_KEY script property is not set.");
+  if (!apiKey) throw new Error("No Gemini API key set.");
 
   const GEMINI_URL =
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=" +
