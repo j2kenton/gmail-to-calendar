@@ -30,11 +30,11 @@
   "runtimeVersion": "V8",
   "addOns": {
     "common": {
-        "name": "Gmail → Calendar AI",
+        "name": "EventGrabber",
         "logoUrl": "https://www.gstatic.com/images/icons/material/system/2x/event_white_24dp.png"
     },
       "gmail": {
-          "name": "Gmail → Calendar AI",
+          "name": "EventGrabber",
               "logoUrl": "https://www.gstatic.com/images/icons/material/system/2x/event_white_24dp.png",
                   "contextualTriggers": [
                         {
