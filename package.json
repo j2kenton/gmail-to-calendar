@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "login": "clasp login",
-    "create": "clasp create --type standalone --title 'Gmail to Calendar AI'",
+    "create": "clasp create --type standalone --title 'EventGrabber'",
     "push": "clasp push",
     "deploy": "clasp deploy"
   },

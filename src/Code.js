@@ -18,7 +18,7 @@ function createEventCard(subject, messageId) {
   return CardService.newCardBuilder()
     .setHeader(
       CardService.newCardHeader()
-        .setTitle("Gmail → Calendar AI")
+        .setTitle("EventGrabber")
         .setSubtitle("Use AI to create an event")
     )
     .addSection(
@@ -59,7 +59,7 @@ function createSettingsCard(message) {
     .setHeader(
       CardService.newCardHeader()
         .setTitle("Settings")
-        .setSubtitle("Gmail → Calendar AI")
+        .setSubtitle("EventGrabber")
     )
     .addSection(
       CardService.newCardSection()
