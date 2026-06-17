@@ -2,6 +2,11 @@
 
 A Gmail Add-on that uses Gemini AI to extract event details from emails and create Google Calendar events with one click.
 
+## Screenshots
+
+![EventGrabber sidebar in Gmail](artifacts/screenshots/screenshot-1.jpeg)
+![Calendar event created from email](artifacts/screenshots/screenshot-2.jpeg)
+
 ## How it works
 
 When you open an email in Gmail, the add-on appears in the sidebar. Click **Send to Calendar** and it uses Gemini to parse the email for event details (date, time, location) and creates a Calendar event automatically. Supports English and Hebrew emails.
